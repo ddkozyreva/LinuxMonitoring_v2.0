@@ -51,19 +51,37 @@ fi
 len=${#str}
 
 counter=0
+max_symbols=7
+symbol=$(($RANDOM%$len))
 folder_name=${str:$symbol:${symbol+1}}
-while [ $counter -le $number_of_folders ]
+while [ $counter -lt $number_of_folders ]
 do
-    gen_len=$(($RANDOM%7+1))
-    symbol=$(($RANDOM%$len))
-    buffer_string=${str:$symbol:${symbol+1}}
-    folder_name=$folder_name$buffer_string
+    gen_len=$(($RANDOM%($max_symbols-$len+1)+$len))
+    while [ $gen_len -gt 1 ]
+    do
+        len=${#str}
+        symbol=$(($RANDOM%$len))
+        buffer_string=${str:$symbol:${symbol+1}}
+        folder_name=$folder_name$buffer_string
+        if [ $gen_len -le $len ];
+        then
+            after_symbol=$(($symbol+1))
+            str="${str:0:$symbol}${str:${after_symbol}}"
+        fi
+        gen_len=$(($gen_len-1))
 
-    counter=$(($counter+1))
+    done
+    echo "FOLDER: $1$folder_name"
+
+    if [ ! -d "$1$folder_name" ];
+    then 
+        mkdir -p "$1$folder_name" && counter=$(($counter+1))
+    fi
+
+    str=$3
+    symbol=$(($RANDOM%$len))
+    folder_name=${str:$symbol:${symbol+1}}
+
 done
 
 echo $folder_name
-# a="qw"
-# b="c"
-# a=$a$b
-# echo $a
