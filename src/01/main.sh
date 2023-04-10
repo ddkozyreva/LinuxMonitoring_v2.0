@@ -2,7 +2,7 @@
 
 location="$1"
 number_of_folders=$2
-str=$3
+characters_for_folders=$3
 number_of_files=$4
 characters_for_files=$5
 size=$6
@@ -13,7 +13,7 @@ min_free_space=1
 
 # ------------------ CHECKS ON INPUT -------------------------
 
-if [ -z "$str" ];
+if [ -z "$characters_for_folders" ];
 then 
     echo "Empty list of characters for folder names"
     exit 0
@@ -26,7 +26,19 @@ then
     exit 0
 fi
 
-if [ ${#str} -gt 7 ];
+if [ $number_of_folders -le 0 ];
+then
+    echo "Enter posiive number for number of folders"
+    exit 0
+fi
+
+if [ $number_of_files -le 0 ];
+then
+    echo "Enter a positive number for number of files"
+    exit 0
+fi
+
+if [ ${#characters_for_folders} -gt 7 ];
 then
     echo "Too much symbols for name of folders"
     exit 0
@@ -60,7 +72,7 @@ fi
 
 # ---------------- VARIABLES FOR GENERATION ------------------
 
-len=${#str}
+len=${#characters_for_folders}
 char_len=${#characters_for_files}
 
 counter=0
@@ -77,84 +89,115 @@ char_delimeter=$(($max_symbols+1-$char_len))
 # ------ MAIN FUNCTION OF FILES AND FOLDERS GENERATION -------
 
 free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
-while [ $counter -lt $number_of_folders ] && [ $free_space -gt $min_free_space ] && [ $inf_counter -lt $max_inf_counter ]
+len=${#characters_for_folders}
+folder_name="$1${characters_for_folders}_$data"
+mkdir -p "$folder_name" && counter=1
+
+# FILES GENERATION FOR INIT FOLDER
+char_len=${#characters_for_files}
+char_location="$folder_name/"
+touch "${char_location}${characters_for_files}_${data}"
+b=""
+j=0
+while [ $j -lt ${#characters_for_files} ]
 do
-    # GENERATION OF FOLDER NAME
-    gen_len=$(($RANDOM%$delimeter+$len))
-    reserv=$(($gen_len-$len))
-    symbol=0
-    folder_name=""
-    while [ $gen_len -gt 0 ]
-    do
-        chosen_symbol=${str:$symbol:${symbol+1}}
-        folder_name=$folder_name$chosen_symbol
-        next=$(($RANDOM%2))
-
-        if [ $reserv -eq 0 ] || [ $next -eq 0 ];
-        then
-            symbol=$(($symbol+1))
-        else
-            reserv=$(($reserv-1))
-        fi
-        gen_len=$(($gen_len-1))
-
-    done
-
-
-    if [ ! -d "$1${folder_name}_$data" ];
-    then 
-        # CREATION OF FOLDER NAME
-        folder_name="$1/${folder_name}_$data/"
-        mkdir -p "$folder_name" && counter=$(($counter+1))
-        
-        # GENERATION OF FILES FOR CREATED FOLDER
-        file_counter=0       
-        while [ $file_counter -lt $number_of_files ]
-        do
-            # GENERATION OF FILE NAME
-            char_gen_len=$(($RANDOM%$char_delimeter+$char_len))
-            reserv=$(($char_gen_len-$char_len))
-            symbol=0
-            file_name=""
-            while [ $char_gen_len -gt 0 ]
-            do
-                chosen_symbol=${characters_for_files:$symbol:${symbol+1}}
-                file_name=$file_name$chosen_symbol
-                next=$(($RANDOM%2))
-
-                if [ $reserv -eq 0 ] || [ $next -eq 0 ];
-                then
-                    symbol=$(($symbol+1))
-                else
-                    reserv=$(($reserv-1))
-                fi
-                char_gen_len=$(($char_gen_len-1))
-            done
-            echo "$file_name $file_counter $number_of_files"
-            if [ ! -f "$folder_name$file_name" ];
-            then
-            # CREATION OF FILE INTO FOLDER
-                touch "$folder_name$file_name" && file_counter=$(($file_counter+1))
-            fi
-        done
-    else
-        inf_counter=$(($inf_counter+1))
-    fi
-    free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
+    b="$b?"
+    j=$(($j+1))
 done
+b="${b}_$data"
+file_counter=1
+while [ $file_counter -lt $number_of_files ] && [ $free_space -gt $min_free_space ]
+do
+    k=0
+    while [ $k -lt $char_len ] && [ $file_counter -lt $number_of_files ]
+    do
+        for char_str in $(find $char_location -type f -name $b);
+        do
+            if [ $file_counter -lt $number_of_files ];
+            then            
+                preambule_len=$((${#char_str}-$char_len-7))
+                tail_=$(($char_len-$k))
+                file_name="${char_str:0:$((k+1+preambule_len))}${char_str:$((k+preambule_len)):$tail_}_$data"
+                touch $file_name
+                file_counter=$(($file_counter+1))
+            fi
+        done;
+        k=$(($k+1))
+    done
+    b="?$b"
+    char_len=$(($char_len+1))
+done
+# END OF FILES GENERATION FOR INIT FOLDER
 
-# ------------------------------------------------------------
 
-# --------------------- ERROR HANDLING -----------------------
 
-if [ $free_space -le $min_free_space ];
-then
-    echo "The available memory is less then minimal required ($free_space Gi)."
-fi
+j=0
+a=""
+while [ $j -lt $len ]
+do
+a="$a?"
+j=$(($j+1))
+done
+a="${a}_$data"
 
-if [ $inf_counter -ge $max_inf_counter ];
-then
-    echo "It was too many attempts to create folders which already exist. Process was stopped."
-    echo "Perhaps it is not possible to create so many folder names from so few characters - the names have became similar."
-    echo "Or too many symbols for only 7-charactered folder names."
-fi
+# FOLDERS GENERATION
+while [ $counter -lt $number_of_folders ] && [ $free_space -gt $min_free_space ]
+do
+    i=0
+    while [ $i -lt $len ] && [ $counter -lt $number_of_folders ]
+    do
+        echo $(find $location -type d -name $a)
+        for str in $(find $location -type d -name $a);
+        do
+            if [ $counter -lt $number_of_folders ];
+            then            
+                preambule_len=$((${#str}-$len-7))
+                tail_=$(($len-$i))
+                folder_name="${str:0:$((i+1+preambule_len))}${str:$((i+preambule_len)):$tail_}_$data"
+                mkdir -p $folder_name
+                counter=$(($counter+1))
+
+                # FILES GENERATION
+                char_len=${#characters_for_files}
+                char_location="$folder_name/"
+                touch "${char_location}${characters_for_files}_${data}"
+                b=""
+                j=0
+                while [ $j -lt ${#characters_for_files} ]
+                do
+                    b="$b?"
+                    j=$(($j+1))
+                done
+                b="${b}_$data"
+                file_counter=1
+                while [ $file_counter -lt $number_of_files ] && [ $free_space -gt $min_free_space ]
+                do
+                    k=0
+                    while [ $k -lt $char_len ] && [ $file_counter -lt $number_of_files ]
+                    do
+                        echo $(find $char_location -type f -name $b)
+                        for char_str in $(find $char_location -type f -name $b);
+                        do
+                            if [ $file_counter -lt $number_of_files ];
+                            then            
+                                preambule_len=$((${#char_str}-$char_len-7))
+                                tail_=$(($char_len-$k))
+                                file_name="${char_str:0:$((k+1+preambule_len))}${char_str:$((k+preambule_len)):$tail_}_$data"
+                                touch $file_name
+                                file_counter=$(($file_counter+1))
+                            fi
+                        done;
+                        k=$(($k+1))
+                    done
+                    b="?$b"
+                    char_len=$(($char_len+1))
+                done
+                # END OF FILES GENERATION
+
+            fi
+        done;
+        i=$(($i+1))
+    done
+    a="?$a"
+    len=$(($len+1))
+done
