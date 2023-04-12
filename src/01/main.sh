@@ -81,7 +81,8 @@ check_str_len() {
         then a="$characters_for_folders" && characters_for_folders="$a$a$a$a"
         fi 
         if [ ${#characters_for_folders} -eq 2 ]
-        then a="${characters_for_folders:0:2}" && characters_for_folders="$a$a"
+        then a="${characters_for_folders:0:1}" && characters_for_folders="$a$characters_for_folders"
+             a="${characters_for_folders:2:1}" && characters_for_folders="$characters_for_folders$a"
         fi 
         if [ ${#characters_for_folders} -eq 3 ]
         then a=${characters_for_folders:0:1} && characters_for_folders="$a$characters_for_folders"
@@ -93,7 +94,8 @@ check_str_len() {
         then a="$file_str" && file_str="$a$a$a$a"
         fi 
         if [ ${#file_str} -eq 2 ]
-        then a="${file_str:0:2}" && file_str="$a$a"
+        then a="${file_str:0:1}" && file_str="$a$file_str"
+             a="${file_str:2:1}" && file_str="$file_str$a"
         fi 
         if [ ${#file_str} -eq 3 ]
         then a=${file_str:0:1} && file_str="$a$file_str"
@@ -126,11 +128,12 @@ get_match_str_for_files() {
 file_generator() {
     data=$(date +"%d%m%y")
     char_len=${#characters_for_files}
-    char_location="$1/"
+    char_location="$1"
     file_counter=0
-    file_name="${char_location}${characters_for_files}_${data}.$ext_str"
-    if [ ! -f $file_name ];
-    then touch $file_name && fill_file $file_name && file_counter=1
+    file_name="${char_location}/${characters_for_files}_${data}.$ext_str"
+    if [ ! -f $file_name ]; then 
+        touch $file_name && fill_file $file_name && file_counter=1 &&
+        echo "$file_name $data $size" >> "log"
     fi
     get_match_str_for_files
     tail_len=$((8+${#ext_str}))
@@ -146,8 +149,9 @@ file_generator() {
                     preambule_len=$((${#char_str}-$char_len-$tail_len))
                     tail_=$(($char_len-$slider))
                     file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"
-                    if [ ! -f $file_name ];
-                    then touch $file_name && file_counter=$(($file_counter+1)) && fill_file $file_name
+                    if [ ! -f $file_name ]; then 
+                        touch $file_name && file_counter=$(($file_counter+1)) && fill_file $file_name &&
+                        echo "$file_name $data $size" >> "log"
                     fi
                 fi
             done;
@@ -191,10 +195,14 @@ main_process() {
     get_characters_for_files
     check_input
     check_str_len
+    echo > "log"
     characters_for_files=$file_str
     len=${#characters_for_folders}
     folder_name="$location/${characters_for_folders}_$data"
-    mkdir -p "$folder_name" && counter=1
+    if [ ! -d $folder_name ]; then
+        mkdir -p "$folder_name" && counter=1
+        echo "$folder_name $data" >> "log"
+    fi
     file_generator "$folder_name"
     get_match_str_for_folders
     while [ $counter -lt $number_of_folders ] && [ $free_space -gt $min_free_space ]
@@ -209,8 +217,10 @@ main_process() {
                     preambule_len=$((${#str}-$len-7))
                     tail_len=$(($len-$i))
                     folder_name="${str:0:$((i+1+preambule_len))}${str:$((i+preambule_len)):$tail_len}_$data"
-                    mkdir -p $folder_name && counter=$(($counter+1))
-                    file_generator "$folder_name"
+                    if [ ! -d $folder_name ]; then
+                        mkdir -p $folder_name && counter=$(($counter+1)) &&
+                        echo "$folder_name $data" >> "log" && file_generator "$folder_name"
+                    fi
                     free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
                 fi
             done; i=$(($i+1))
