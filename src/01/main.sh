@@ -19,7 +19,6 @@ get_parameters() {
 # ------------------------------------------------------------
 
 # ------------------ CHECKS ON INPUT -------------------------
-
 check_input() {
  if [ -z "$characters_for_folders" ];
     then echo "Empty list of characters for folder names" && exit 0
@@ -75,6 +74,32 @@ check_input() {
     echo "The size unappropriate." &&  exit 0
     fi
 }
+check_str_len() {
+    if [ ${#characters_for_folders} -lt 4 ];
+    then
+        if [ ${#characters_for_folders} -eq 1 ]
+        then a="$characters_for_folders" && characters_for_folders="$a$a$a$a"
+        fi 
+        if [ ${#characters_for_folders} -eq 2 ]
+        then a="${characters_for_folders:0:2}" && characters_for_folders="$a$a"
+        fi 
+        if [ ${#characters_for_folders} -eq 3 ]
+        then a=${characters_for_folders:0:1} && characters_for_folders="$a$characters_for_folders"
+        fi 
+    fi
+    if [ ${#file_str} -lt 4 ];
+    then
+        if [ ${#characters_for_folders} -eq 1 ]
+        then a="$file_str" && file_str="$a$a$a$a"
+        fi 
+        if [ ${#file_str} -eq 2 ]
+        then a="${file_str:0:2}" && file_str="$a$a"
+        fi 
+        if [ ${#file_str} -eq 3 ]
+        then a=${file_str:0:1} && file_str="$a$file_str"
+        fi 
+    fi
+}
 # ------------------------------------------------------------
 
 # --------------------- FILE GENERATOR -----------------------
@@ -102,10 +127,13 @@ file_generator() {
     data=$(date +"%d%m%y")
     char_len=${#characters_for_files}
     char_location="$1/"
-    touch "${char_location}${characters_for_files}_${data}.$ext_str"
+    file_counter=0
+    file_name="${char_location}${characters_for_files}_${data}.$ext_str"
+    if [ ! -f $file_name ];
+    then touch $file_name && fill_file $file_name && file_counter=1
+    fi
     get_match_str_for_files
     tail_len=$((8+${#ext_str}))
-    file_counter=1
     while [ $file_counter -lt $number_of_files ] && [ $free_space -gt $min_free_space ]
     do
         slider=0
@@ -117,13 +145,10 @@ file_generator() {
                 then            
                     preambule_len=$((${#char_str}-$char_len-$tail_len))
                     tail_=$(($char_len-$slider))
-                    echo "1 ${char_str:0:${#char_str}}"
-                    echo "2 ${char_str:0:$preambule_len}"
                     file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"
-                    touch $file_name
-                    file_counter=$(($file_counter+1))
-                    fill_file $file_name
-                    echo "file_name $file_name"
+                    if [ ! -f $file_name ];
+                    then touch $file_name && file_counter=$(($file_counter+1)) && fill_file $file_name
+                    fi
                 fi
             done;
             slider=$(($slider+1))
@@ -146,7 +171,6 @@ get_match_str_for_folders() {
     folder_match_str="?$folder_match_str" && j=$(($j+1))
     done
 }
-
 get_characters_for_files() {
     character_str_slider=0
     sep="." && ext_str="" && file_str="" && sep_point=${#characters_for_files}
@@ -166,6 +190,7 @@ main_process() {
     get_parameters
     get_characters_for_files
     check_input
+    check_str_len
     characters_for_files=$file_str
     len=${#characters_for_folders}
     folder_name="$location/${characters_for_folders}_$data"
@@ -182,8 +207,8 @@ main_process() {
                 if [ $counter -lt $number_of_folders ] && [ $free_space -gt $min_free_space ];
                 then            
                     preambule_len=$((${#str}-$len-7))
-                    tail_=$(($len-$i))
-                    folder_name="${str:0:$((i+1+preambule_len))}${str:$((i+preambule_len)):$tail_}_$data"
+                    tail_len=$(($len-$i))
+                    folder_name="${str:0:$((i+1+preambule_len))}${str:$((i+preambule_len)):$tail_len}_$data"
                     mkdir -p $folder_name && counter=$(($counter+1))
                     file_generator "$folder_name"
                     free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
