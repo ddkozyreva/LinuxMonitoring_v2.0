@@ -106,17 +106,6 @@ check_str_len() {
 
 # --------------------- FILE GENERATOR -----------------------
 
-fill_file_on_1K() {
-    for _ in {0..500}; 
-    do echo "$(($RANDOM%10))">> $1
-    done
-}
-fill_file() {
-    cur_size=1
-    while [ $cur_size -le $size ] && [ $cur_size -le $max_acceptable_file_size ]
-    do fill_file_on_1K $1 && cur_size=$(($cur_size + 1))
-    done
-}
 get_match_str_for_files() {
     match_str="_$data.$ext_str"
     j=0
@@ -132,8 +121,8 @@ file_generator() {
     file_counter=0
     file_name="${char_location}/${characters_for_files}_${data}.$ext_str"
     if [ ! -f $file_name ]; then 
-        touch $file_name && fill_file $file_name && file_counter=1 &&
-        echo "$file_name $data $size" >> "log"
+        dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 && file_counter=1 &&
+        echo "$file_name $data $size" >> "access_log"
     fi
     get_match_str_for_files
     tail_len=$((8+${#ext_str}))
@@ -150,8 +139,8 @@ file_generator() {
                     tail_=$(($char_len-$slider))
                     file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"
                     if [ ! -f $file_name ]; then 
-                        touch $file_name && file_counter=$(($file_counter+1)) && fill_file $file_name &&
-                        echo "$file_name $data $size" >> "log"
+                        dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 && file_counter=$(($file_counter+1)) &&
+                        echo "$file_name $data $size" >> "access_log"
                     fi
                 fi
             done;
@@ -159,6 +148,7 @@ file_generator() {
         done
         match_str="?$match_str"
         char_len=$(($char_len+1))
+        free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
     done
 }
 # ------------------------------------------------------------
@@ -195,13 +185,13 @@ main_process() {
     get_characters_for_files
     check_input
     check_str_len
-    echo > "log"
+    rm -f "access_log" && touch "access_log"
     characters_for_files=$file_str
     len=${#characters_for_folders}
     folder_name="$location/${characters_for_folders}_$data"
     if [ ! -d $folder_name ]; then
         mkdir -p "$folder_name" && counter=1
-        echo "$folder_name $data" >> "log"
+        echo "$folder_name $data" >> "access_log"
     fi
     file_generator "$folder_name"
     get_match_str_for_folders
@@ -219,7 +209,7 @@ main_process() {
                     folder_name="${str:0:$((i+1+preambule_len))}${str:$((i+preambule_len)):$tail_len}_$data"
                     if [ ! -d $folder_name ]; then
                         mkdir -p $folder_name && counter=$(($counter+1)) &&
-                        echo "$folder_name $data" >> "log" && file_generator "$folder_name"
+                        echo "$folder_name $data" >> "access_log" && file_generator "$folder_name"
                     fi
                     free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
                 fi
@@ -229,4 +219,4 @@ main_process() {
     done
 }
 
-main_process
+main_process 2> output.txt
