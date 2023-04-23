@@ -201,7 +201,7 @@ generate_subfolder_name() {
         str_repeated_slider=$(($str_repeated_slider+1))
         rest_symbols=$(($rest_symbols-1))
     done
-    cur_subfolder_name="$cur_subfolder_name/"
+    cur_subfolder_name="${cur_subfolder_name}_$data/"
 }
 generate_folder() {
     folder_name=$start_folder
