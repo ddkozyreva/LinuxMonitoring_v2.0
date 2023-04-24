@@ -39,8 +39,8 @@ main_process() {
 
     if [ $choice -eq 2 ];
     then
-        regex_data_format="202[23]-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) ([01][0-9]|2[0-3]):([0-5][0-9])"
-        if [[ $start_time =~ $regex_data_format ]] && [[ $end_time =~ $regex_data_format ]];
+        regex_date_format="202[23]-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) ([01][0-9]|2[0-3]):([0-5][0-9])"
+        if [[ $start_time =~ $regex_date_format ]] && [[ $end_time =~ $regex_date_format ]];
         then
             elements_for_deletion=$(find $location -newermt "$start_time" ! -newermt "$end_time")
             for file in $elements_for_deletion;
