@@ -1,5 +1,8 @@
+# CHECKS
 check_input() {
-    if [ -z $choice ] || [ $choice -ge 5 ];
+    # The string begins with 1,2,3 or 4 and then it ends ($)
+    check="^[1234]$"
+    if ! [[ $choice =~ $check ]];
     then
         echo "Choose one option as first parameter:
         1 - All entries sorted by response code
@@ -14,7 +17,7 @@ check_input() {
 main() {
     echo "Enter the path to file with logs"
     read log_file
-
+    
     if [ $choice -eq 1 ];
     then 
         awk '{print | "sort --key=6"}' $log_file
@@ -27,7 +30,7 @@ main() {
 
     if [ $choice -eq 3 ];
     then 
-        awk '{ \
+        awk '{
         if ($9 ~ /4**/ || $9 ~ /5**/) 
             print $0;
         }' $log_file
@@ -35,7 +38,7 @@ main() {
 
     if [ $choice -eq 4 ];
     then
-        awk '{ \
+        awk '{
         if ($9 ~ /4**/ || $9 ~ /5**/) {
             print $1 | "uniq"
         }
@@ -43,7 +46,6 @@ main() {
     fi
 }
 
-# log_file="/Users/loretath/Developer/DO4_LinuxMonitoring_v2.0-0/src/04/access_log_1"
 choice=$1
 check_input
 main
