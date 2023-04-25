@@ -44,7 +44,7 @@ generate_time(){
     let hours=$RANDOM%24
     let minutes=$RANDOM%60
     let seconds=$RANDOM%60
-    time=$(date -v-${hours}H -v-${minutes}M -v-${seconds}S  +"%H:%M:%S %z")
+    time=$(date -v-${hours}H -v-${minutes}M -v-${seconds}S +"%H:%M:%S %z")
 }
 
 file_counter=1
@@ -52,7 +52,7 @@ while [ $file_counter -le $number_of_files ]
 do
     export LANG=""
     log_counter=0
-    log_file="access_log_$file_counter"
+    log_file="access_$file_counter.log"
     number_of_logs=$(($RANDOM%$diapazon_of_records+$min_number_of_records))
     generate_date
     while [ $log_counter -lt $number_of_logs ]
