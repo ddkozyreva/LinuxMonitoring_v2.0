@@ -1,16 +1,16 @@
 #! /bin/bash
 # ------------------- CONSTANT VALUES ------------------------
-number_of_folders=$1
-characters_for_folders=$2
-number_of_files=$3
-characters_for_files=$4
-size=$5
+# number_of_folders=$1
+characters_for_folders=$1
+characters_for_files=$2
+size=$3
 min_free_space=1
 max_acceptable_file_size=100
 max_subfolders=100
 max_number_of_repetiton=30
 max_len_of_absolute_way=255
-start_folder="/Users/loretath/Developer/school21/DO4_LinuxMonitoring_v2.0-0/src/"
+max_number_of_files=100
+start_folder="/home/loretath/buf/"
 # ------------------------------------------------------------
 # ---------------- PARAMETERS FOR GENERATION -----------------
 get_parameters() {
@@ -37,14 +37,6 @@ check_input() {
 
     if [ -z "$ext_str" ];
     then echo "Empty list of characters for file extension" && exit 0
-    fi
-
-    if [ $number_of_folders -le 0 ];
-    then echo "Enter posiive number for number of folders" && exit 0
-    fi
-
-    if [ $number_of_files -le 0 ];
-    then echo "Enter a positive number for number of files" && exit 0
     fi
 
     if [ ${#characters_for_folders} -gt 7 ];
@@ -122,26 +114,29 @@ file_generator() {
     if [ ! -f $file_name ]; then 
         dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 && file_counter=1 &&
         file_counter=1 &&
-        echo "$file_name $data $size" >> "access_log"
+        echo "$file_name $data $size" >> "access.log"
     fi
     get_match_str_for_files
     tail_len=$((8+${#ext_str}))
-    while [ $file_counter -lt $number_of_files ] && [ $free_space -gt $min_free_space ]
+    df -h / | tail -n 1 | awk '{print $4}'
+    while [[ $free_space > $min_free_space ]];
     do
         slider=0
-        while [ $slider -lt $char_len ] && [ $file_counter -lt $number_of_files ]
+        while [ $slider < $char_len ]
         do
             for char_str in $(find $char_location -type f -name $match_str);
             do
+                number_of_files = $(($RANDOM%$max_number_of_files))
                 if [ $file_counter -lt $number_of_files ];
                 then  
                     preambule_len=$((${#char_str}-$char_len-$tail_len))
                     tail_=$(($char_len-$slider))
                     file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"
+                    sudo touch $file_name && sudo chmod 777 $file_name
                     if [ ! -f $file_name ]; then 
                         dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 &&
                         file_counter=$(($file_counter+1)) &&
-                        echo "$file_name $data $size" >> "access_log"
+                        echo "$file_name $data $size" >> "access.log"
                     fi
                 fi
             done;
@@ -150,6 +145,8 @@ file_generator() {
         match_str="?$match_str"
         char_len=$(($char_len+1))
         free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
+        echo "FREE SPASE: free_space"
+        df -h / | tail -n 1 | awk '{print $4}'
     done
 }
 # ------------------------------------------------------------
@@ -219,7 +216,7 @@ generate_folder() {
             fi
         fi
         if [ ! -d $folder_name ]; then
-            echo "$folder_name $data" >> "access_log"
+            echo "$folder_name $data" >> "access.log"
         fi
         subfolder_counter=$(($subfolder_counter+1))
     done
@@ -229,19 +226,20 @@ main_process() {
     get_characters_for_files
     check_input
     check_str_len
-    rm -f "access_log" && touch "access_log"
+    sudo rm -f "access.log" && sudo touch "access.log" && sudo chmod 777 "access.log"
     characters_for_files=$file_str
     len=${#characters_for_folders}
     counter=0
-    while [ $counter -lt $number_of_folders ] && [ $free_space -gt $min_free_space ]
+    while [[ $free_space > $min_free_space ]];
     do
         i=0
         generate_folder
         if [ ! -d $folder_name ]; then
-            mkdir -p "$folder_name" && counter=$(($counter+1)) &&
-            echo "$folder_name $data" >> "access_log" && file_generator "$folder_name"
+            sudo mkdir -p "$folder_name" && sudo chmod 777 $folder_name && counter=$(($counter+1)) &&
+            echo "$folder_name $data" >> "access.log" && file_generator "$folder_name"
         fi
     done
 }
 
+sudo touch output.txt; sudo chmod 777 output.txt
 main_process 2> output.txt
