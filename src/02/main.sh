@@ -9,7 +9,7 @@ max_acceptable_file_size=100
 max_subfolders=100
 max_number_of_repetiton=30
 max_len_of_absolute_way=255
-max_number_of_files=100
+# max_number_of_files_in_folder=10
 start_folder="/home/loretath/buf/"
 # ------------------------------------------------------------
 # ---------------- PARAMETERS FOR GENERATION -----------------
@@ -17,53 +17,62 @@ get_parameters() {
     data=$(date +"%d%m%y")
     len=${#characters_for_folders}
     counter=0
-    free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
+    free_space=$(df -hBG / | tail -n 1 | awk '{print $4}' | rev | cut -c 2- | rev)
 }
 # ------------------------------------------------------------
 
 # ------------------ CHECKS ON INPUT -------------------------
 check_input() {
  if [ -z "$characters_for_folders" ];
-    then echo "Empty list of characters for folder names" && exit 0
+    then echo "Empty list of characters for folder names" && exit 1
     fi
 
     if [ -z "$characters_for_files" ];
-    then echo "Empty list of characters for file names" && exit 0
+    then echo "Empty list of characters for file names" && exit 1
     fi
 
     if [ -z "$file_str" ];
-    then echo "Empty list of characters for file names" && exit 0
+    then echo "Empty list of characters for file names" && exit 1
     fi
 
     if [ -z "$ext_str" ];
-    then echo "Empty list of characters for file extension" && exit 0
+    then echo "Empty list of characters for file extension" && exit 1
     fi
 
     if [ ${#characters_for_folders} -gt 7 ];
-    then echo "Too much symbols for name of folders" && exit 0
+    then echo "Too much symbols for name of folders" && exit 1
     fi
 
     if [ ${#file_str} -gt 7 ]
-    then echo "Too much symbols for name of files" && exit 0
+    then echo "Too much symbols for name of files" && exit 1
     fi
 
     if [ ${#ext_str} -gt 3 ]
-    then echo "Too much symbols for extension of files" && exit 0
+    then echo "Too much symbols for extension of files" && exit 1
     fi
 
     if [ -z "$size" ];
-    then echo "Enter the size as 5th argument." && exit 0
+    then echo "Enter the size as 5th argument." && exit 1
     fi
 
-    if [ $size -gt $max_acceptable_file_size ];
+    size_in_number=$(echo $size | rev | cut -c 3- | rev)
+    if [ $size_in_number -gt $max_acceptable_file_size ];
     then 
-    echo "The size enormous. It will be used 100kb as the size of generated files." && size=100
+    echo "The size enormous. Max size of generated file is 100Mb." && exit 1
     fi
 
-    if [ $size -le 0 ];
+    digits_regex='^[0-9]+$'
+    if ! [[ $size_in_number =~ $digits_regex ]];
     then 
-    echo "The size unappropriate." &&  exit 0
+    echo "The size (3d parameter) unappropriate. It must be non-negative number." &&  exit 1
     fi
+
+    size_extension=$(echo $size | rev | cut -c -2 | rev)
+    if [ "$size_extension" != "Mb" ];
+    then 
+    echo "Please enter the size ended on 'Mb', e.g. 10Mb." && exit 1
+    fi
+
 }
 check_str_len() {
     if [ ${#characters_for_folders} -lt 4 ];
@@ -108,35 +117,40 @@ get_match_str_for_files() {
 file_generator() {
     data=$(date +"%d%m%y")
     char_len=${#characters_for_files}
-    char_location="$1"
+    local folder="$1"
     file_counter=0
-    file_name="${char_location}${characters_for_files}_${data}.$ext_str"
+    file_name="${folder}${characters_for_files}_${data}.$ext_str"
     if [ ! -f $file_name ]; then 
-        dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 && file_counter=1 &&
-        file_counter=1 &&
+        # dd if=/dev/zero of=$file_name  bs="${size_in_number}M"  count=1 
+        sudo fallocate -l $size $file_name && file_counter=1 &&
         echo "$file_name $data $size" >> "access.log"
     fi
     get_match_str_for_files
     tail_len=$((8+${#ext_str}))
-    df -h / | tail -n 1 | awk '{print $4}'
-    while [[ $free_space > $min_free_space ]];
+    local max_attempts=10
+    local attempt=0
+    while [[ $free_space > $min_free_space && $attempt < $max_attempts ]];
     do
         slider=0
-        while [ $slider < $char_len ]
+        attempt=$(($attempt+1))
+        while [[ $slider < $char_len ]];
         do
-            for char_str in $(find $char_location -type f -name $match_str);
+            for char_str in $(find $folder -type f -name $match_str);
             do
-                number_of_files = $(($RANDOM%$max_number_of_files))
+                # number_of_files=$(($RANDOM%$max_number_of_files_in_folder))
+                number_of_files=$RANDOM
                 if [ $file_counter -lt $number_of_files ];
                 then  
                     preambule_len=$((${#char_str}-$char_len-$tail_len))
                     tail_=$(($char_len-$slider))
-                    file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"
-                    sudo touch $file_name && sudo chmod 777 $file_name
+                    file_name="${char_str:0:$((slider+1+preambule_len))}${char_str:$((slider+preambule_len)):$tail_}_${data}.$ext_str"                  
                     if [ ! -f $file_name ]; then 
-                        dd if=/dev/zero of=$file_name  bs="${size}K"  count=1 &&
+                        sudo touch $file_name && sudo chmod 777 $file_name
+                        sudo fallocate -l $size $file_name &&
                         file_counter=$(($file_counter+1)) &&
                         echo "$file_name $data $size" >> "access.log"
+                        free_space=$(df -hBG / | tail -n 1 | awk '{print $4}' | rev | cut -c 2- | rev)
+                        echo "FREE SPACE: $free_space"
                     fi
                 fi
             done;
@@ -144,9 +158,6 @@ file_generator() {
         done
         match_str="?$match_str"
         char_len=$(($char_len+1))
-        free_space=$(df -h / | tail -n 1 | awk '{print $4}' | rev | cut -c 3- | rev)
-        echo "FREE SPASE: free_space"
-        df -h / | tail -n 1 | awk '{print $4}'
     done
 }
 # ------------------------------------------------------------
@@ -222,6 +233,8 @@ generate_folder() {
     done
 } 
 main_process() {
+    free_space=$(df -h / | tail -n 1 | awk '{print $4}')
+    echo "Free space is $free_space at the start."
     get_parameters
     get_characters_for_files
     check_input
@@ -239,6 +252,8 @@ main_process() {
             echo "$folder_name $data" >> "access.log" && file_generator "$folder_name"
         fi
     done
+    free_space=$(df -h / | tail -n 1 | awk '{print $4}')
+    echo "Free space is $free_space at the end."
 }
 
 sudo touch output.txt; sudo chmod 777 output.txt
