@@ -1,17 +1,4 @@
-# VALUES OF RESPONSE CODE IN HTTP
-
-# 200 OK 
-# 201 Created
-
-# 400 Bad Request
-# 401 Unauthorized
-# 403 Forbidden
-# 404 Not Found
-
-# 500 Internal Server Error
-# 501 Not Implemented
-# 502 Bad Gateway
-# 503 Service Unavailable
+#!/bin/bash
 
 # CONSTANT VALUES
 min_number_of_records=100
@@ -38,13 +25,15 @@ generate_date() {
     let days_backwards=$RANDOM%31
     let months_backwards=$RANDOM%11
     let years_backwards=$RANDOM%$max_years_ago
-    date=$(date -v-${days_backwards}d -v-${months_backwards}m -v-${years_backwards}y +"%d/%b/%Y")
+    date_ago="-$days_backwards days -$months_backwards months -$years_backwards years"
+    date=$(date -d "$date_ago" '+%d/%b/%Y')
 }
 generate_time(){
     let hours=$RANDOM%24
     let minutes=$RANDOM%60
     let seconds=$RANDOM%60
-    time=$(date -v-${hours}H -v-${minutes}M -v-${seconds}S +"%H:%M:%S %z")
+    time_ago="-$seconds seconds -$minutes minutes -$hours hours"
+    time=$(date -d "$time_ago" '+%H:%M:%S %z')
 }
 
 file_counter=1
@@ -52,7 +41,8 @@ while [ $file_counter -le $number_of_files ]
 do
     export LANG=""
     log_counter=0
-    log_file="access_$file_counter.log"
+    log_file="access$file_counter.log"
+    sudo touch $log_file && chmod 777 $log_file
     number_of_logs=$(($RANDOM%$diapazon_of_records+$min_number_of_records))
     generate_date
     while [ $log_counter -lt $number_of_logs ]
@@ -66,8 +56,9 @@ do
         echo "$ip - $USER [$date:$time] \"${methods[i_m]} $resource $protocol\" ${response_codes[i_rc]} $object_size \"$url_from\" \"${agents[i_a]}\""
         log_counter=$(($log_counter+1))
     done > $log_file
+    sudo touch buffer && chmod 777 buffer
     sort --key=$column_for_sorting $log_file > buffer
-    cat buffer > $log_file && rm buffer
+    cat buffer > $log_file && sudo rm buffer
     file_counter=$(($file_counter+1))
 done
  

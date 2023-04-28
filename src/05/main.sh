@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # CHECKS
 check_input() {
     # The string begins with 1,2,3 or 4 and then it ends ($)
@@ -31,7 +33,7 @@ main() {
     if [ $choice -eq 3 ];
     then 
         awk '{
-        if ($9 ~ /4**/ || $9 ~ /5**/) 
+        if ($9 ~ /[45][0-9][0-9]/ ) 
             print $0;
         }' $log_file
     fi
@@ -39,7 +41,7 @@ main() {
     if [ $choice -eq 4 ];
     then
         awk '{
-        if ($9 ~ /4**/ || $9 ~ /5**/) {
+        if ($9 ~ /[45][0-9][0-9]/) {
             print $1 | "uniq"
         }
         }' $log_file

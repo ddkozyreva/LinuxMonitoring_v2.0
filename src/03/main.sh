@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 choice=$1
 location="/"
 
