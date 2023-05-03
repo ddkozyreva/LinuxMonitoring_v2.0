@@ -191,13 +191,13 @@ curl 127.0.0.1:9100
 
 5. Для того, чтобы отразить метрики в grafana из prometheus, добавим data source "Prometheus" (инструкция: https://prometheus.io/docs/visualization/grafana/#creating-a-prometheus-data-source) и создадим дашборд. Используемые метрики:
 
-- ЦПУ: 100 - (avg by (instance) (irate(node_cpu_seconds_total{job="node",mode="idle"}[5m])) * 100)
+- ЦПУ: `100 - (avg by (instance) (irate(node_cpu_seconds_total{job="node",mode="idle"}[5m])) * 100)`
 
-- Свободная и доступная память: node_memory_MemFree_bytes, node_memory_MemAvail_bytes
+- Свободная и доступная память: `node_memory_MemFree_bytes`, `node_memory_MemAvail_bytes`
 
-- Свободное место: node_filesystem_avail_bytes/node_filesystem_size_bytes*100
+- Свободное место: `node_filesystem_avail_bytes/node_filesystem_size_bytes*100`
 
-- Количество операций ввода/вывода на жестком диске: node_disk_io_now
+- Количество операций ввода/вывода на жестком диске: `node_disk_io_now`
 
 ![](../misc/images/grafana.png)
 
@@ -225,9 +225,15 @@ stress -c 2 -i 1 -m 1 --vm-bytes 32M -t 10s
 
 ![](../misc/images/8.png)
 
-4. Склонируем машину и во внутренней сети настроим статическую маршрутизацию между двумя машинами. Склонированная машина будет сервером, исходная машина - клиентом. На сервере запусти `iperf3 -s`, на клиенте - `iperf3 -c <ip_addr>`. С запуском сетевой трафик во внутренней сети (enp0s8) заметно возрастет, что показывают пики на графике:
+4. Склонируем машину и во внутренней сети настроим статическую маршрутизацию между двумя машинами. Склонированная машина будет сервером, исходная машина - клиентом. На сервере запустим `iperf3 -s`, на клиенте - `iperf3 -c <ip_addr>`. С запуском сетевой трафик во внутренней сети (enp0s8) заметно возрастет, что показывают пики на графике:
 
 ![](../misc/images/network_8.png)
 
 
 ## Part 9. Дополнительно. Свой *node_exporter*
+
+1. Проброс портов 81:81, установка nginx. Напишем nginx.conf, в котором обозначим, что будем слушать порт 81. Положим файл по назначению, перезапустим nginx и откроем в браузере 127.0.0.1:81. Сервер и проброс портов работают.
+
+![](../misc/images/9_1.png)
+
+2. 
