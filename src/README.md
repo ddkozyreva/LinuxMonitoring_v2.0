@@ -98,3 +98,118 @@ goaccess ../04/access*.log --log-format=COMBINED > ./$html_output
 ```
 
 ![](../../misc/images/6.png)
+
+## Part 7. **Prometheus** and **Grafana**
+
+|Утилита| Обзор |
+|--|--|
+|Prometheus|Получает метрики из разных сервисов и собирает их в одном месте.|
+|Node exporter|Небольшое приложение, собирающее метрики операционной системы и предоставляющее к ним доступ по HTTP. Prometheus собирает данные с одного или нескольких экземпляров Node Exporter.|
+|Grafana|Вишенка на торте:) Grafana отображает данные из Prometheus в виде графиков и диаграмм, организованных в дашборды.|
+
+1. Обновим систему:
+
+```bash
+sudo apt-get update
+sudo apt-get upgrade
+```
+
+2. На корпоративной сети стояли блокировки официального сайта https://dl.grafana.com/enterprise/release/grafana-enterprise_9.5.1_amd64.deb и https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz. Для решения проблемы с VPN были скачаны бинарник для графаны и архив для node_exporter и скачанные файлы были помещены в общую с виртуальной машиной папку.
+
+3. Grafana:
+
+```bash
+sudo dpkg -i grafana-enterprise_9.5.1_amd64.deb
+sudo systemctl start grafana-server
+sudo systemctl enable grafana-server
+sudo systemctl status grafana-server
+```
+
+- Для проверки запуска на ubuntu:
+```bash
+curl 127.0.0.1:3030
+```
+
+- Для запуска через браузер сделала проброс портов.
+
+![](../misc/images/ports.png)
+
+- Для первого входа в систему используется логин "admin" и пароль "admin".
+
+4. Prometheus был установлен через менеджер пакетов:
+
+```bash
+sudo apt-get install prometheus
+sudo systemctl start prometheus
+sudo systemctl enable prometheus
+sudo systemctl status prometheus
+```
+
+
+- Для проверки запуска на ubuntu:
+```bash
+curl 127.0.0.1:9090
+```
+
+
+4. Node_exporter был установлен аналогично grafana - через скачивание архива в общую папку с использованием vpn. Ссылка: https://ourcodeworld.com/articles/read/1686/how-to-install-prometheus-node-exporter-on-ubuntu-2004
+
+
+```bash
+
+# Extract Node Exporter and remove binary
+tar xvf node_exporter-1.3.1.linux-amd64.tar.gz
+cd node_exporter-1.3.1.linux-amd64
+sudo cp node_exporter /usr/local/bin
+cd ..
+rm -rf ./node_exporter-1.3.1.linux-amd64
+
+# Create an user in the system for Node Exporter
+sudo useradd --no-create-home --shell /bin/false node_exporter
+sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+
+# The node_exporter.service file
+cp node_exporter.service /etc/systemd/system/node_exporter.service
+
+# Reload the daemon with
+sudo systemctl daemon-reload
+
+sudo systemctl start node_exporter
+sudo systemctl enable node_exporter
+sudo systemctl status node_exporter
+```
+
+
+- Для проверки запуска на ubuntu:
+```bash
+curl 127.0.0.1:9100
+```
+
+- В браузере:
+
+![](../misc/images/node_exporter.png)
+
+5. Для того, чтобы отразить метрики в grafana из prometheus, добавим data source "Prometheus" (инструкция: https://prometheus.io/docs/visualization/grafana/#creating-a-prometheus-data-source) и создадим дашборд. Используемые метрики:
+
+- ЦПУ: 100 - (avg by (instance) (irate(node_cpu_seconds_total{job="node",mode="idle"}[5m])) * 100)
+
+- Свободная и доступная память: node_memory_MemFree_bytes, node_memory_MemAvail_bytes
+
+- Свободное место: node_filesystem_avail_bytes/node_filesystem_size_bytes*100
+
+- Количество операций ввода/вывода на жестком диске: node_disk_io_now
+
+![](../misc/images/grafana.png)
+
+_Колодцы на графиках со свободным местом (Filesystem available size) и пики на графике с операциями ввода-вывода отражают запуск скрипта из 02/ с засорением системы и последующее удаление сгенерированных файлов._
+
+_Пики на графиках с ЦПУ сопряжены со стресс-тестированием системы._
+
+6. Запуск стресс-тестирования:
+
+```bash
+stress -c 2 -i 1 -m 1 --vm-bytes 32M -t 10s
+```
+
+
+## Part 8. Готовый дашборд
