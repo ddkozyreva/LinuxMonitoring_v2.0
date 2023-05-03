@@ -101,11 +101,11 @@ goaccess ../04/access*.log --log-format=COMBINED > ./$html_output
 
 ## Part 7. **Prometheus** and **Grafana**
 
-|Утилита| Обзор |
-|--|--|
-|Prometheus|Получает метрики из разных сервисов и собирает их в одном месте.|
-|Node exporter|Небольшое приложение, собирающее метрики операционной системы и предоставляющее к ним доступ по HTTP. Prometheus собирает данные с одного или нескольких экземпляров Node Exporter.|
-|Grafana|Вишенка на торте:) Grafana отображает данные из Prometheus в виде графиков и диаграмм, организованных в дашборды.|
+|Утилита| Порт | Обзор |
+|--|--|--|
+|Prometheus|9090|Получает метрики из разных сервисов и собирает их в одном месте.|
+|Node exporter|9100|Небольшое приложение, собирающее метрики операционной системы и предоставляющее к ним доступ по HTTP. Prometheus собирает данные с одного или нескольких экземпляров Node Exporter.|
+|Grafana|3000|Вишенка на торте:) Grafana отображает данные из Prometheus в виде графиков и диаграмм, организованных в дашборды.|
 
 1. Обновим систему:
 
@@ -127,7 +127,7 @@ sudo systemctl status grafana-server
 
 - Для проверки запуска на ubuntu:
 ```bash
-curl 127.0.0.1:3030
+curl 127.0.0.1:3000
 ```
 
 - Для запуска через браузер сделала проброс портов.
@@ -151,12 +151,12 @@ sudo systemctl status prometheus
 curl 127.0.0.1:9090
 ```
 
+![](../misc/images/prometheus.png)
 
 4. Node_exporter был установлен аналогично grafana - через скачивание архива в общую папку с использованием vpn. Ссылка: https://ourcodeworld.com/articles/read/1686/how-to-install-prometheus-node-exporter-on-ubuntu-2004
 
 
 ```bash
-
 # Extract Node Exporter and remove binary
 tar xvf node_exporter-1.3.1.linux-amd64.tar.gz
 cd node_exporter-1.3.1.linux-amd64
