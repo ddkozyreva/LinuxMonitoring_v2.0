@@ -213,3 +213,21 @@ stress -c 2 -i 1 -m 1 --vm-bytes 32M -t 10s
 
 
 ## Part 8. Готовый дашборд
+
+1. Скачаем Node Exporter Quickstart and Dashboard с официального сайта Grafana Labs: https://grafana.com/api/dashboards/13978/revisions/1/download.
+
+2. Перейдем по ссылке http://localhost:3000/dashboard/import и загрузим скачанный json.
+
+![](../misc/images/8_json.png)
+
+
+3. Готово!
+
+![](../misc/images/8.png)
+
+4. Склонируем машину и во внутренней сети настроим статическую маршрутизацию между двумя машинами. Склонированная машина будет сервером, исходная машина - клиентом. На сервере запусти `iperf3 -s`, на клиенте - `iperf3 -c <ip_addr>`. С запуском сетевой трафик во внутренней сети (enp0s8) заметно возрастет, что показывают пики на графике:
+
+![](../misc/images/network_8.png)
+
+
+## Part 9. Дополнительно. Свой *node_exporter*
