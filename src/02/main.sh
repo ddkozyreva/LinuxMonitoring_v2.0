@@ -10,7 +10,7 @@ max_subfolders=100
 max_number_of_repetiton=30
 max_len_of_absolute_way=255
 # max_number_of_files_in_folder=10
-start_folder="/home/loretath/buf/"
+start_folder="/"
 # ------------------------------------------------------------
 # ---------------- PARAMETERS FOR GENERATION -----------------
 get_parameters() {
