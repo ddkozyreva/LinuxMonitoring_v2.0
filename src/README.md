@@ -232,8 +232,72 @@ stress -c 2 -i 1 -m 1 --vm-bytes 32M -t 10s
 
 ## Part 9. Дополнительно. Свой *node_exporter*
 
-1. Проброс портов 81:81, установка nginx. Напишем nginx.conf, в котором обозначим, что будем слушать порт 81. Положим файл по назначению, перезапустим nginx и откроем в браузере 127.0.0.1:81. Сервер и проброс портов работают.
+1. Сделала проброс портов 81:81, установила nginx. 
 
-![](../misc/images/9_1.png)
+2. Редактировала nginx.conf, в котором обозначила, что сервер будет слушать порт 81, а также указала, что на страничке 127.0.0.1:81 будем отражать страницу nginx по умолчанию, а на 127.0.0.1:81/metrics - метрики. Далее именно с этой страницы в графане мы сможем отразить собранные метрики. Перезапустила nginx.
 
-2. 
+```bash
+# nginx.conf
+events {
+}
+http {
+    server {
+        listen 81;
+        server_name localhost;
+        root /usr/share/nginx/html/;
+        index index.html;
+        location /metrics {
+            default_type "text";
+            alias /home/loretath/shared/09/;
+            index 9.html;
+        }
+	}
+}
+```
+
+```bash
+sudo cp nginx.conf /etc/nginx/nginx.conf 
+sudo nginx -t
+sudo service nginx restart
+```
+
+3. Написала скрипт, который собирает метрики. Метрики передаются в html-файл и записаны определенным образом -- так же, как в prometheus/metrics:
+
+```bash
+# Функция, собирающая метрики
+get_metrics() {
+    # Средний показатель загрузки за 1 мин
+    cpu="$(cat /proc/loadavg | awk '{print $1}')"
+    # Свободная оперативная память
+    memory_avail="$(free | grep Mem | awk '{print $4}')"
+    # Свободное место на диске
+    disk_avail="$(df /| grep / | awk '{print $4}')"
+
+    echo "# HELP cpu CPU info 1 min"
+    echo "# TYPE cpu gauge"
+    echo "cpu $cpu"
+
+    echo "# HELP memory_avail available RAM"
+    echo "# TYPE memory_avail gauge"
+    echo "memory_avail $memory_avail"
+
+    echo "# HELP disk_avail free disk space"
+    echo "## TYPE disk_avail gauge"
+    echo "disk_avail $disk_avail"
+}
+```
+
+4. В prometheus.yml указала, что метрики будут собираться с 127.0.0.1:81 каждые 3 секунды:
+
+```yml
+scrape_configs:
+  - job_name: 'my_export_node'
+    scrape_interval: 3s
+    scrape_timeout: 3s
+    static_configs:
+      - targets: ['127.0.0.1:81']
+```
+
+5. В grafana создала дашборд и выбрала свои метрики: 
+
+![](../misc/images/9.png)

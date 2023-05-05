@@ -35,7 +35,7 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ['127.0.0.1:80']
+      - targets: ['127.0.0.1:81']
 
   - job_name: node
     # If prometheus-node-exporter is installed, grab stats about the local
