@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Установка nginx :ри необходимости
+# Установка nginx при необходимости
 installation() {
     if ! [[ -n $(dpkg -l | grep nginx) ]];
     then sudo apt install -y nginx
@@ -43,8 +43,17 @@ main_process() {
     while true; 
     do 
         get_metrics > ./9.html
-        curl 127.0.0.1:81
+        stress -c 2 -i 1 -m 1 --vm-bytes 32M -t 10s
         sleep 3
+
+        get_metrics > ./9.html
+        bash ../02/main.sh az az.az 100Mb
+        sleep 3
+
+        get_metrics > ./9.html
+        bash ../03/main.sh 1 access.log
+        sleep 3
+
     done;
 }
 
