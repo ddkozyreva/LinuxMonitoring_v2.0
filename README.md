@@ -4,6 +4,7 @@ Real-time monitoring and research of the system status.
 
 The russian version of the task can be found in the repository.
 
+Description of the work done in the src/.
 
 ## Contents
 
